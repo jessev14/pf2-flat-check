@@ -1,0 +1,20 @@
+{
+    "name": "pf2-flat-check",
+    "title": "PF2e Flat Check",
+    "description": "",
+    "author": "enso#0361",
+    "version": "1.0.0",
+    "minimumCoreVersion": "9",
+    "compatibleCoreVersion": "9",
+    "esmodules": [
+        "./scripts/main.js"
+    ],
+    "styles": [
+        "./styles/style.css"
+    ],
+    "languages": [
+    ],
+    "url": "",
+    "manifest": "",
+    "download": ""
+}

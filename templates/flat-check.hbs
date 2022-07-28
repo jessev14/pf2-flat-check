@@ -1,0 +1,12 @@
+<div>
+    {{#if actor.condition}}<b>{{actor.name}}</b> is <b>{{actor.condition}}</b>.</br>{{/if}}
+    {{#each targets as |target|}}
+    <b>{{target.name}}</b> is <b>{{target.condition}}</b>.</br>
+    {{/each}}
+    Flat Check DC is <b>{{flatCheckDC}}</b>.
+</div>
+<div class="dice-roll">
+<div class="dice-result {{flatCheckRollResultClass}}">
+    <h4 class="dice-total flat-check">{{flatCheckRollResult}}</h4>
+</div>
+</div>

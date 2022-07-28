@@ -1,0 +1,16 @@
+/* 
+.dice-total.flat-check:hover {
+    transition: none;
+    color: unset;
+    background-color:unset;
+    cursor: unset;
+}
+*/
+
+.flat-check-failure {
+    background: #eb9494;
+}
+
+.flat-check-success {
+    background: #6bd36b;
+}
