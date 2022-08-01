@@ -26,7 +26,7 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
 
     const { token, item, actor } = message;
     if (!item || !actor) return;
-    if (item.type === 'weapon' && (!message.isRoll || message.isDamageRoll)) return;
+    if (['weapon', 'melee'].includes(item.type) && (!message.isRoll || message.isDamageRoll)) return;
     if (item.type === 'spell' && message.isRoll) return;
     
     const templateData = {};
