@@ -1,12 +1,15 @@
 const moduleID = 'pf2-flat-check';
 
 const actorConditionMap = {
-    'Dazzled': 5,
-    'Blinded': 11
+    'Blinded': -Infinity, //Just so it gets picked up. DC partially depends on target.
+    'Dazzled': 5
 };
+
 const targetConditionMap = {
     'Concealed': 5,
-    'Hidden': 11
+    'Hidden': 11,
+    'Invisible': 11, //Treated as Undetected
+    'Undetected': 11
 };
 
 
@@ -28,23 +31,23 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
     if (!item || !actor) return;
     if (item.type === 'weapon' && (!message.isRoll || message.isDamageRoll)) return;
     if (item.type === 'spell' && message.isRoll) return;
-    
+
     const templateData = {};
-    const { conditionName, DC } = getCondition(actor, true, item.type === 'spell');
+    const { conditionName, DC } = getCondition(token, null, item.type === 'spell');
     templateData.flatCheckDC = DC ?? 0;
     templateData.actor = { name: token?.name || actor.name, condition: conditionName };
 
     templateData.targets = [];
     const targets = Array.from(game.users.get(userID).targets);
     for (const target of targets) {
-        const { conditionName, DC } = getCondition(target.actor, false, item.type === 'spell');
+        const { conditionName, DC } = getCondition(token, target, item.type === 'spell');
         if (!conditionName) continue;
 
         templateData.targets.push({
             name: target.name,
             condition: conditionName
         });
-        
+
         if (DC > templateData.flatCheckDC) templateData.flatCheckDC = DC;
     }
 
@@ -72,29 +75,69 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
 });
 
 
-function getCondition(actor, isAttacker, isSpell) {
-    const conditionMap = isAttacker ? { ...actorConditionMap } : targetConditionMap;
+function distanceBetween(token0, token1) {
+  const ray = new Ray(new PIXI.Point(token0?.x || 0, token0?.y || 0), new PIXI.Point(token1?.x || 0, token1?.y || 0));
+  const x = Math.ceil(Math.abs(ray.dx / canvas.dimensions.size));
+  const y = Math.ceil(Math.abs(ray.dy / canvas.dimensions.size));
+  return Math.floor(Math.min(x, y) + Math.abs(y - x)) * canvas.dimensions.distance;
+};
 
-    const conditions = actor.itemTypes.condition
-        .filter(c => {
-            if (isAttacker && isSpell) {
-                const isStupefy = c.name === game.i18n.localize('PF2E.ConditionTypeStupefied');
-                if (isStupefy) return true;
-            }
-            return Object.keys(conditionMap).includes(c.name);
-        })
-        .map(c => c.name);
+
+function getCondition(token, target, isSpell) {
+    const checkingAttacker = target === null;
+    const currentActor = checkingAttacker ? token?.actor : target?.actor;
+    const conditionMap = checkingAttacker ? { ...actorConditionMap } : targetConditionMap;
+    const attackerBlinded = !!token.actor?.items?.find(i=>i.slug === "blinded");
+    const attackerHasBlindFight = !!token.actor?.items?.find((i) => i.slug === "blind-fight");
+    //Approximation of adjacency on a square grid with snap to grid on, ignoring elevation (so as to avoid having to implement the more complex pf2e rules).
+    const attackerAdjacent = distanceBetween(token, target) <= 5;
+    const attackerEqualOrHigherLevel = (token.actor?.level || -Infinity) >= (target?.actor?.level || Infinity);
+
+    const conditions = currentActor.itemTypes.condition
+      .filter(c => {
+          if (checkingAttacker && isSpell) {
+              const isStupefy = c.name === game.i18n.localize('PF2E.ConditionTypeStupefied');
+              if (isStupefy) return true;
+          }
+          return Object.keys(conditionMap).includes(c.name);
+      })
+      .map(c => c.name)
+      .sort();
+
+    if (!checkingAttacker && attackerBlinded && !conditions.includes('Concealed')) conditions.push('Concealed');
     if (!conditions.length) return {};
 
     let stupefyLevel;
     if (conditions.includes(game.i18n.localize('PF2E.ConditionTypeStupefied'))) {
-        stupefyLevel = actor.itemTypes.condition.find(c => c.name === game.i18n.localize('PF2E.ConditionTypeStupefied'))?.value;
+        stupefyLevel = currentActor.itemTypes.condition.find(c => c.name === game.i18n.localize('PF2E.ConditionTypeStupefied'))?.value;
         if (stupefyLevel) conditionMap['Stupefied'] = stupefyLevel + 5;
     }
 
-    let condition = conditions.reduce((acc, current) => conditionMap[acc] > conditionMap[current] ? acc : current);
-    const DC = conditionMap[condition];
+    let condition = conditions.reduce((acc, current) => {
+        let currentDC = conditionMap[current];
+        if (!checkingAttacker && attackerHasBlindFight) {
+            if (current === 'Concealed') {
+                currentDC = -Infinity;
+            } else if (current === 'Hidden') {
+                currentDC = 5;
+            } else if (current === 'Invisible' || current === 'Undetected') {
+              if (attackerAdjacent && attackerEqualOrHigherLevel) {
+                current = 'Hidden';
+                currentDC = 5;
+              }
+            }
+        }
+        return conditionMap[acc] > currentDC ? acc : current;
+    });
+    let DC = conditionMap[condition];
     if (condition === 'Stupefied') condition += ` ${stupefyLevel}`;
+    if (DC === -Infinity) return {};
+    //The following lines are needed for when reduce doesn't run due to only a single condition being present.
+    if (attackerHasBlindFight) {
+      if (condition === 'Concealed' && !checkingAttacker) return {};
+      if ((condition === 'Invisible' || condition === 'Undetected') && !checkingAttacker && attackerAdjacent && attackerEqualOrHigherLevel) condition = 'Hidden';
+      if (condition === 'Hidden') DC = 5;
+    }
 
-    return { conditionName: condition, DC };
+    return {conditionName: condition, DC};
 }
