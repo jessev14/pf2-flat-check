@@ -29,7 +29,7 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
 
     const { token, item, actor } = message;
     if (!item || !actor) return;
-    if (['weapon', 'melee'].includes(item.type) && (!message.isRoll || message.isDamageRoll)) return;
+    if (['ancestry', 'feat', 'melee', 'weapon'].includes(item.type) && (!message.isRoll || message.isDamageRoll)) return;
     if (item.type === 'spell' && message.isRoll) return;
 
     const templateData = {};
@@ -88,6 +88,7 @@ function getCondition(token, target, isSpell) {
     const currentActor = checkingAttacker ? token?.actor : target?.actor;
     const conditionMap = checkingAttacker ? { ...actorConditionMap } : targetConditionMap;
     const attackerBlinded = !!token.actor?.items?.find(i=>i.slug === "blinded");
+    const attackerDazzled = !!token.actor?.items?.find(i=>i.slug === "dazzled");
     const attackerHasBlindFight = !!token.actor?.items?.find((i) => i.slug === "blind-fight");
     //Approximation of adjacency on a square grid with snap to grid on, ignoring elevation (so as to avoid having to implement the more complex pf2e rules).
     const attackerAdjacent = distanceBetween(token, target) <= 5;
@@ -104,7 +105,8 @@ function getCondition(token, target, isSpell) {
       .map(c => c.name)
       .sort();
 
-    if (!checkingAttacker && attackerBlinded && !conditions.includes('Concealed')) conditions.push('Concealed');
+    if (!checkingAttacker && attackerBlinded && !conditions.includes('Hidden')) conditions.push('Hidden');
+    if (!checkingAttacker && attackerDazzled && !conditions.includes('Concealed')) conditions.push('Concealed');
     if (!conditions.length) return {};
 
     let stupefyLevel;
@@ -115,6 +117,9 @@ function getCondition(token, target, isSpell) {
 
     let condition = conditions.reduce((acc, current) => {
         let currentDC = conditionMap[current];
+        if (checkingAttacker && attackerHasBlindFight) {
+            if (current === 'Dazzled') currentDC = -Infinity;
+        }
         if (!checkingAttacker && attackerHasBlindFight) {
             if (current === 'Concealed') {
                 currentDC = -Infinity;
@@ -134,9 +139,10 @@ function getCondition(token, target, isSpell) {
     if (DC === -Infinity) return {};
     //The following lines are needed for when reduce doesn't run due to only a single condition being present.
     if (attackerHasBlindFight) {
-      if (condition === 'Concealed' && !checkingAttacker) return {};
-      if ((condition === 'Invisible' || condition === 'Undetected') && !checkingAttacker && attackerAdjacent && attackerEqualOrHigherLevel) condition = 'Hidden';
-      if (condition === 'Hidden') DC = 5;
+        if (condition === 'Dazzled' && checkingAttacker) return {};
+        if (condition === 'Concealed' && !checkingAttacker) return {};
+        if ((condition === 'Invisible' || condition === 'Undetected') && !checkingAttacker && attackerAdjacent && attackerEqualOrHigherLevel) condition = 'Hidden';
+        if (condition === 'Hidden') DC = 5;
     }
 
     return {conditionName: condition, DC};
