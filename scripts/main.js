@@ -23,13 +23,20 @@ Hooks.once("init", () => {
     });
 });
 
-
 Hooks.on('createChatMessage', async (message, data, userID) => {
     if (game.user.id !== game.users.find(u => u.isGM && u.active).id) return;
 
-    const { token, item, actor } = message;
-    if (!item || !actor) return;
-    if (['ancestry', 'feat', 'melee', 'weapon'].includes(item.type) && (!message.isRoll || message.isDamageRoll)) return;
+    const { token, actor } = message;
+    let { item } = message;
+    const originUUID = message.data.flags.pf2e?.origin?.uuid;
+    if (!item && !message.isDamageRoll && originUUID?.match(/Item.(\w+)/) && RegExp.$1 === 'xxPF2ExUNARMEDxx') {
+        const actionIds = originUUID.match(/Item.(\w+)/);
+        if (actionIds && actionIds[1]) {
+            item = actor?.data.data?.actions.filter((atk) => atk?.type === "strike").filter((a) => a.item.id === actionIds[1]) || null;
+        }
+    }
+    if (!actor || !item) return;
+    if (['ancestry', 'effect', 'feat', 'melee', 'weapon'].includes(item.type) && (!message.isRoll || message.isDamageRoll)) return;
     if (item.type === 'spell' && message.isRoll) return;
 
     const templateData = {};
@@ -61,7 +68,7 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
         : flatCheckRoll.result < templateData.flatCheckDC
             ? 'Failure'
             : 'Success';
-        
+
     templateData.flatCheckRollResultClass =
         flatCheckRoll.result < templateData.flatCheckDC
             ? 'flat-check-failure'
