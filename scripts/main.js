@@ -46,6 +46,7 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
 
     templateData.targets = [];
     const targets = Array.from(game.users.get(userID).targets);
+    let anyTargetUndetected = false;
     for (const target of targets) {
         const { conditionName, DC } = getCondition(token, target, item.type === 'spell');
         if (!conditionName) continue;
@@ -56,6 +57,7 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
         });
 
         if (DC > templateData.flatCheckDC) templateData.flatCheckDC = DC;
+        if (target.actor.itemTypes?.condition.map(n=>n.name)?.includes('Undetected')) anyTargetUndetected = true;
     }
 
     if (!templateData.actor.condition && !templateData.targets.length) return;
@@ -76,8 +78,10 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
 
     const content = await renderTemplate(`modules/${moduleID}/templates/flat-check.hbs`, templateData);
     await ChatMessage.create({
+        content: content,
         speaker: ChatMessage.getSpeaker({ token, actor, user: game.users.get(userID) }),
-        content
+        whisper: anyTargetUndetected ? ChatMessage.getWhisperRecipients("GM").map((u) => u.id) : null,
+        blind: anyTargetUndetected
     });
 });
 
