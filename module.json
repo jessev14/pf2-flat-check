@@ -1,11 +1,40 @@
 {
     "name": "pf2-flat-check",
+    "id": "pf2-flat-check",
     "title": "PF2e Flat Check",
-    "description": "",
+    "description": "PF2e Flat Check implements automatic Flat Checks when characters make weapon strikes or cast spells.",
+    "license": "https://github.com/jessev14/pf2-flat-check/blob/main/license",
+    "readme": "https://github.com/jessev14/pf2-flat-check/blob/main/README.md",
+    "bugs": "https://github.com/jessev14/pf2-flat-check/issues",
     "author": "enso#0361",
+    "authors": [
+        {
+            "name": "enso#0361",
+            "url": "https://gnu.xdy.se/home",
+            "discord": "xdy#3735",
+            "flags": {}
+        }
+    ],
     "version": "1.0.0",
     "minimumCoreVersion": "9",
-    "compatibleCoreVersion": "9",
+    "compatibleCoreVersion": "10",
+    "compatibility": {
+        "minimum": "9",
+        "verified": "10.278"
+    },
+    "relationships": {
+        "systems": [
+            {
+                "id": "pf2e",
+                "type": "system",
+                "manifest": "https://github.com/foundryvtt/pf2e/releases/download/latest/system.json",
+                "compatibility": {
+                    "minimum": "3.13.5",
+                    "verified": "3.13.5"
+                }
+            }
+        ]
+    },
     "esmodules": [
         "./scripts/main.js"
     ],
