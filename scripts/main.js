@@ -123,6 +123,16 @@ function getCondition(token, target, isSpell) {
 
     if (!checkingAttacker && attackerBlinded && !conditions.includes('Hidden')) conditions.push('Hidden');
     if (!checkingAttacker && attackerDazzled && !conditions.includes('Concealed')) conditions.push('Concealed');
+    // Get darkness conditions
+    if (!checkingAttacker) {
+        const attackerLowLightVision = token.actor.system.traits.senses.some(s => s.type === 'lowLightVision');
+        const targetInDimLight = currentActor.itemTypes.effect.some(e => e.getFlag('pf2e-darkness-effects', 'dimLight'));
+        if (targetInDimLight && !attackerLowLightVision && !conditions.includes('Concealed')) conditions.push('Concealed');
+
+        const attackerDarkvision = token.actor.system.traits.senses.some(s => s.type === 'darkvision');
+        const targetInDarkness = currentActor.itemTypes.effect.some(e => e.getFlag('pf2e-darkness-effects', 'darkness'));
+        if (targetInDarkness && !attackerDarkvision && !conditions.includes('Hidden')) conditions.push('Hidden');
+    }
     if (!conditions.length) return {};
 
     let stupefyLevel;
