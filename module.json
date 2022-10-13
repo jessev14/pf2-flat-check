@@ -10,8 +10,8 @@
     "authors": [
         {
             "name": "enso#0361",
-            "url": "https://gnu.xdy.se/home",
-            "discord": "xdy#3735",
+            "url": "https://github.com/jessev14/",
+            "discord": "enso#0361",
             "flags": {}
         }
     ],
@@ -20,7 +20,8 @@
     "compatibleCoreVersion": "10",
     "compatibility": {
         "minimum": "9",
-        "verified": "10.278"
+        "verified": "10.287",
+        "maximum": "10"
     },
     "relationships": {
         "systems": [
@@ -30,7 +31,7 @@
                 "manifest": "https://github.com/foundryvtt/pf2e/releases/download/latest/system.json",
                 "compatibility": {
                     "minimum": "3.13.5",
-                    "verified": "3.13.5"
+                    "verified": "4.2.6"
                 }
             }
         ]
