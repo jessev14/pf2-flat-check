@@ -124,7 +124,7 @@ function getCondition(token, target, isSpell) {
     if (!checkingAttacker && attackerBlinded && !conditions.includes('Hidden')) conditions.push('Hidden');
     if (!checkingAttacker && attackerDazzled && !conditions.includes('Concealed')) conditions.push('Concealed');
     // Get darkness conditions
-    if (!checkingAttacker) {
+    if (!checkingAttacker && game.modules.get('pf2e-darkness-effects')?.active) {
         const attackerLowLightVision = token.actor.system.traits.senses.some(s => s.type === 'lowLightVision');
         const targetInDimLight = currentActor.itemTypes.effect.some(e => e.getFlag('pf2e-darkness-effects', 'dimLight'));
         if (targetInDimLight && !attackerLowLightVision && !conditions.includes('Concealed')) conditions.push('Concealed');
