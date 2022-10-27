@@ -86,7 +86,8 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
     content: content,
     speaker: ChatMessage.getSpeaker({ token, actor, user: game.users.get(userID) }),
     whisper: anyTargetUndetected ? ChatMessage.getWhisperRecipients("GM").map((u) => u.id) : null,
-    blind: anyTargetUndetected
+    blind: anyTargetUndetected,
+    flags: {"pf2-flat-check": true}
   });
 });
 
