@@ -1,15 +1,15 @@
 const moduleID = 'pf2-flat-check';
 
 const actorConditionMap = {
-  'Blinded': -Infinity, //Just so it gets picked up. DC partially depends on target.
-  'Dazzled': 5
+  'blinded': -Infinity, //Just so it gets picked up. DC partially depends on target.
+  'dazzled': 5
 };
 
 const targetConditionMap = {
-  'Concealed': 5,
-  'Hidden': 11,
-  'Invisible': 11, //Treated as Undetected
-  'Undetected': 11
+  'concealed': 5,
+  'hidden': 11,
+  'invisible': 11, //Treated as Undetected
+  'undetected': 11
 };
 
 
@@ -115,55 +115,55 @@ function getCondition(token, target, isSpell) {
   const conditions = currentActor.itemTypes.condition
     .filter(c => {
       if (checkingAttacker && isSpell) {
-        const isStupefy = c.name === game.i18n.localize('PF2E.ConditionTypeStupefied');
+        const isStupefy = c.slug === 'stupefied';
         if (isStupefy) return true;
       }
-      return Object.keys(conditionMap).includes(c.name);
+      return Object.keys(conditionMap).includes(c.slug);
     })
-    .map(c => c.name)
+    .map(c => c.slug)
     .sort();
 
-  if (!checkingAttacker && attackerBlinded && !conditions.includes('Hidden')) conditions.push('Hidden');
-  if (!checkingAttacker && attackerDazzled && !conditions.includes('Concealed')) conditions.push('Concealed');
+  if (!checkingAttacker && attackerBlinded && !conditions.includes('hidden')) conditions.push('hidden');
+  if (!checkingAttacker && attackerDazzled && !conditions.includes('concealed')) conditions.push('concealed');
   // Get darkness conditions
   if (!checkingAttacker && game.modules.get('pf2e-darkness-effects')?.active) {
     const attackerLowLightVision = token.actor.system.traits.senses.some(s => s.type === 'lowLightVision');
     const targetInDimLight = currentActor.getFlag('pf2e-darkness-effects', 'darknessLevel') === 1;
-    if (targetInDimLight && !attackerLowLightVision && !conditions.includes('Concealed')) conditions.push('Concealed');
+    if (targetInDimLight && !attackerLowLightVision && !conditions.includes('concealed')) conditions.push('concealed');
 
     const attackerDarkvision = token.actor.system.traits.senses.some(s => s.type === 'darkvision');
     const targetInDarkness = currentActor.getFlag('pf2e-darkness-effects', 'darknessLevel') === 0;
-    if (targetInDarkness && !attackerDarkvision && !conditions.includes('Hidden')) conditions.push('Hidden');
+    if (targetInDarkness && !attackerDarkvision && !conditions.includes('hidden')) conditions.push('hidden');
   }
   if (!conditions.length) return {};
 
   let stupefyLevel;
-  if (conditions.includes(game.i18n.localize('PF2E.ConditionTypeStupefied'))) {
-    stupefyLevel = currentActor.itemTypes.condition.find(c => c.name === game.i18n.localize('PF2E.ConditionTypeStupefied'))?.value;
-    if (stupefyLevel) conditionMap['Stupefied'] = stupefyLevel + 5;
+  if (conditions.includes('stupefied')) {
+    stupefyLevel = currentActor.itemTypes.condition.find(c => c.slug === 'stupefied')?.value;
+    if (stupefyLevel) conditionMap['stupefied'] = stupefyLevel + 5;
   }
 
   let condition = conditions.reduce((acc, current) => {
     let currentDC = conditionMap[current];
     if (checkingAttacker && attackerHasBlindFight) {
-      if (current === 'Dazzled') currentDC = -Infinity;
+      if (current === 'dazzled') currentDC = -Infinity;
     }
     if (!checkingAttacker) {
       if (attackerHasLiminalFetchling) {
-        if (current === 'Concealed') {
+        if (current === 'concealed') {
           currentDC = 3;
-        } else if (current === 'Undetected') {
+        } else if (current === 'undetected') {
           currentDC = 9;
         }
       }
       if (attackerHasBlindFight) {
-        if (current === 'Concealed') {
+        if (current === 'concealed') {
           currentDC = -Infinity;
-        } else if (current === 'Hidden') {
+        } else if (current === 'hidden') {
           currentDC = 5;
-        } else if (current === 'Invisible' || current === 'Undetected') {
+        } else if (current === 'invisible' || current === 'undetected') {
           if (attackerAdjacent && attackerEqualOrHigherLevel) {
-            current = 'Hidden';
+            current = 'hidden';
             currentDC = 5;
           }
         }
@@ -172,19 +172,19 @@ function getCondition(token, target, isSpell) {
     return conditionMap[acc] > currentDC ? acc : current;
   });
   let DC = conditionMap[condition];
-  if (condition === 'Stupefied') condition += ` ${stupefyLevel}`;
+  if (condition === 'stupefied') condition += ` ${stupefyLevel}`;
   if (DC === -Infinity) return {};
   //The following lines are needed for when reduce doesn't run due to only a single condition being present.
   if (attackerHasLiminalFetchling) {
-    if (condition === 'Concealed') DC = 3;
-    if (condition === 'Undetected') DC = 9;
+    if (condition === 'concealed') DC = 3;
+    if (condition === 'undetected') DC = 9;
   }
   if (attackerHasBlindFight) {
-    if (condition === 'Dazzled' && checkingAttacker) return {};
-    if (condition === 'Concealed' && !checkingAttacker) return {};
-    if ((condition === 'Invisible' || condition === 'Undetected') && !checkingAttacker && attackerAdjacent && attackerEqualOrHigherLevel) condition = 'Hidden';
-    if (condition === 'Hidden') DC = 5;
+    if (condition === 'dazzled' && checkingAttacker) return {};
+    if (condition === 'concealed' && !checkingAttacker) return {};
+    if ((condition === 'invisible' || condition === 'undetected') && !checkingAttacker && attackerAdjacent && attackerEqualOrHigherLevel) condition = 'hidden';
+    if (condition === 'hidden') DC = 5;
   }
 
-  return { conditionName: condition, DC };
+  return { conditionName: condition && condition.length > 0 ? condition.charAt(0).toUpperCase() + condition.slice(1) : condition, DC };
 }
