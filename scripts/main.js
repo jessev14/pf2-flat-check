@@ -52,12 +52,14 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
   templateData.targets = [];
   const targets = Array.from(game.users.get(userID).targets);
   let anyTargetUndetected = false;
+  let targetCount = 1;
   for (const target of targets) {
     const { conditionName, DC } = getCondition(token, target, item.type === 'spell');
     if (!conditionName) continue;
 
+    const visibility = game.settings.get("pf2e", "metagame_tokenSetsNameVisibility");
     templateData.targets.push({
-      name: target.name,
+      name: visibility && [0, 20, 40].includes(target.document.displayName) ? "Target " + targetCount++ : target.name,
       condition: conditionName
     });
 
@@ -87,7 +89,7 @@ Hooks.on('createChatMessage', async (message, data, userID) => {
     speaker: ChatMessage.getSpeaker({ token, actor, user: game.users.get(userID) }),
     whisper: anyTargetUndetected ? ChatMessage.getWhisperRecipients("GM").map((u) => u.id) : null,
     blind: anyTargetUndetected,
-    flags: {"pf2-flat-check": true}
+    flags: { "pf2-flat-check": true }
   });
 });
 
@@ -186,5 +188,8 @@ function getCondition(token, target, isSpell) {
     if (condition === 'hidden') DC = 5;
   }
 
-  return { conditionName: condition && condition.length > 0 ? condition.charAt(0).toUpperCase() + condition.slice(1) : condition, DC };
+  return {
+    conditionName: condition && condition.length > 0 ? condition.charAt(0).toUpperCase() + condition.slice(1) : condition,
+    DC
+  };
 }
